@@ -8,9 +8,9 @@ let openRooms = [];
 const players = [];
 
 class Player {
-  constructor(id, name, level, socketId) {
+  constructor(id, username, level, socketId) {
     this.id = id;
-    this.name = name;
+    this.username = username;
     this.level = level;
     this.socketId = socketId;
     this.gameId = null;
@@ -23,6 +23,8 @@ class Player {
 
 class Game {
   players = [];
+  map = null;
+  gamemode = null;
 
   constructor(id) {
     this.id = id;
@@ -64,7 +66,9 @@ io.on("connection", (socket) => {
       game.addPlayer(player);
       player.gameId = gameId;
       players.push(player);
-      console.log("joinRoom", game, player);
+
+      console.log('player joined room');
+      socket.broadcast.emit("joinedRoom", game);
       socket.emit("joinedRoom", game);
     }
   });
@@ -90,5 +94,21 @@ io.on("connection", (socket) => {
     if (game) {
       socket.emit("players", game);
     }
+  });
+
+  socket.on('startGame', (roomId) => {
+    const game = openRooms.find((g) => g.id === roomId);
+    // game.map = map;
+    // game.gamemode = gamemode;
+    console.log('game started');
+    console.log(roomId)
+    socket.broadcast.emit('gameStarted', roomId);
+    socket.emit('gameStarted', roomId);
+  });
+
+  socket.on('getPlayerData', () => {
+    console.log('player data requested');
+    socket.emit('playerData');
+    socket.broadcast.emit('playerData');
   });
 });
