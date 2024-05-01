@@ -13,7 +13,7 @@ class Player {
     this.username = username;
     this.level = level;
     this.socketId = socketId;
-    this.gameId = null;
+    this.room = null;
   }
 
   joinGame(gameId) {
@@ -23,11 +23,14 @@ class Player {
 
 class Game {
   players = [];
-  map = null;
-  gamemode = null;
 
-  constructor(id) {
+  constructor(id, name, map, mode, players, ping) {
     this.id = id;
+    this.name = name;
+    this.map = map;
+    this.mode = mode;
+    this.players = players;
+    this.ping = ping;
   }
 
   addPlayer(player) {
@@ -38,6 +41,24 @@ class Game {
     this.players = this.players.filter((p) => p.id !== player.id);
   }
 }
+
+// class Game {
+//   players = [];
+//   map = null;
+//   gamemode = null;
+
+//   constructor(id) {
+//     this.id = id;
+//   }
+
+//   addPlayer(player) {
+//     this.players.push(player);
+//   }
+
+//   removePlayer(player) {
+//     this.players = this.players.filter((p) => p.id !== player.id);
+//   }
+// }
 
 io.on("connection", (socket) => {
   console.log("connected: " + socket.id);
@@ -66,23 +87,29 @@ io.on("connection", (socket) => {
       game.addPlayer(player);
       player.gameId = gameId;
       players.push(player);
-
-      console.log('player joined room');
+      console.log("player joined room: " + game.id);
       socket.broadcast.emit("joinedRoom", game);
       socket.emit("joinedRoom", game);
     }
   });
 
-  socket.on("createRoom", (gameId, p) => {
+  socket.on("createRoom", (room, p) => {
     const player = new Player(
       p._value.id,
       p._value.username,
       p._value.level,
       socket.id
     );
-    player.joinGame(gameId);
-    player.gameId = gameId;
-    const game = new Game(gameId);
+    player.joinGame(room.id);
+    player.room = room.id;
+    const game = new Game(
+      room.id,
+      room.name,
+      room.map,
+      room.mode,
+      room.players,
+      0
+    );
     game.addPlayer(player);
     openRooms.push(game);
     players.push(player);
@@ -96,19 +123,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on('startGame', (roomId) => {
+  socket.on("startGame", (roomId) => {
     const game = openRooms.find((g) => g.id === roomId);
     // game.map = map;
     // game.gamemode = gamemode;
-    console.log('game started');
-    console.log(roomId)
-    socket.broadcast.emit('gameStarted', roomId);
-    socket.emit('gameStarted', roomId);
+    console.log("game started");
+    console.log(roomId);
+    socket.broadcast.emit("gameStarted", roomId);
+    socket.emit("gameStarted", roomId);
   });
 
-  socket.on('getPlayerData', () => {
-    console.log('player data requested');
-    socket.emit('playerData');
-    socket.broadcast.emit('playerData');
+  socket.on("getPlayerData", () => {
+    console.log("player data requested");
+    socket.emit("playerData");
+    socket.broadcast.emit("playerData");
+  });
+
+  socket.on("settingsChanged", (room) => {
+    socket.broadcast.emit("settingsChanged", room);
   });
 });
