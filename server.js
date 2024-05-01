@@ -6,6 +6,7 @@ const io = require("socket.io")(3000, {
 
 let openRooms = [];
 const players = [];
+let snake = {data: [], id: ""}
 
 class Player {
   constructor(id, username, level, socketId) {
@@ -107,8 +108,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on('getPlayerData', () => {
-    console.log('player data requested');
-    socket.emit('playerData');
-    socket.broadcast.emit('playerData');
+    // console.log(test);
+    socket.emit('getData', snake);
+    socket.broadcast.emit('getData', snake);
+  });
+
+  socket.on('sendPlayerData', (snakeData, playerId) => {
+    console.log('player data sent');
+    snake = {data: snakeData, id: playerId}
+    // socket.emit('sendData');
+    // socket.broadcast.emit('sendData');
   });
 });
