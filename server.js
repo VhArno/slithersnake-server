@@ -135,6 +135,16 @@ io.on("connection", (socket) => {
     socket.broadcast.emit('showFood', foodX, foodY);
   });
 
+  socket.on('generatePowerUp', (powerX, powerY) => {
+    socket.emit('showPowerUp', powerX, powerY);
+    socket.broadcast.emit('showPowerUp', powerX, powerY);
+  });
+
+  socket.on('setPowerUpAvailability', (bool) => {
+    socket.emit('setPowerUpAvailability', bool);
+    socket.broadcast.emit('setPowerUpAvailability', bool);
+  });
+
   socket.on('getRooms', () => {
     console.log(openRooms)
     socket.emit('rooms', openRooms);
