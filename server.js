@@ -119,4 +119,9 @@ io.on("connection", (socket) => {
     // socket.emit('sendData');
     // socket.broadcast.emit('sendData');
   });
+
+  socket.on('generateFood', (foodX, foodY) => {
+    socket.emit('showFood', foodX, foodY);
+    socket.broadcast.emit('showFood', foodX, foodY);
+  });
 });
