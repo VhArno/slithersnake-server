@@ -6,7 +6,7 @@ const io = require("socket.io")(3000, {
 
 let openRooms = [];
 const players = [];
-let snake = {data: [], id: ""}
+let snake = { data: [], id: "" };
 
 class Player {
   constructor(id, username, level, socketId) {
@@ -14,7 +14,7 @@ class Player {
     this.username = username;
     this.level = level;
     this.socketId = socketId;
-    this.gameId = null;
+    this.room = null;
   }
 
   joinGame(gameId) {
@@ -24,11 +24,14 @@ class Player {
 
 class Game {
   players = [];
-  map = null;
-  gamemode = null;
 
-  constructor(id) {
+  constructor(id, name, map, mode, players, ping) {
     this.id = id;
+    this.name = name;
+    this.map = map;
+    this.mode = mode;
+    this.players = players;
+    this.ping = ping;
   }
 
   addPlayer(player) {
@@ -67,27 +70,34 @@ io.on("connection", (socket) => {
       game.addPlayer(player);
       player.gameId = gameId;
       players.push(player);
-
-      console.log('player joined room');
+      console.log("player joined room: " + game.id);
       socket.broadcast.emit("joinedRoom", game);
       socket.emit("joinedRoom", game);
     }
   });
 
-  socket.on("createRoom", (gameId, p) => {
+  socket.on("createRoom", (room, p) => {
     const player = new Player(
       p._value.id,
       p._value.username,
       p._value.level,
       socket.id
     );
-    player.joinGame(gameId);
-    player.gameId = gameId;
-    const game = new Game(gameId);
+    player.joinGame(room.id);
+    player.room = room.id;
+    const game = new Game(
+      room.id,
+      room.name,
+      room.map,
+      room.mode,
+      room.players,
+      0
+    );
     game.addPlayer(player);
     openRooms.push(game);
     players.push(player);
     socket.emit("joinedRoom", game);
+    socket.broadcast.emit("newRoom", openRooms);
   });
 
   socket.on("getPlayers", (gameId) => {
@@ -97,25 +107,25 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on('startGame', (roomId) => {
+  socket.on("startGame", (roomId) => {
     const game = openRooms.find((g) => g.id === roomId);
     // game.map = map;
     // game.gamemode = gamemode;
-    console.log('game started');
-    console.log(roomId)
-    socket.broadcast.emit('gameStarted', roomId);
-    socket.emit('gameStarted', roomId);
+    console.log("game started");
+    console.log(roomId);
+    socket.broadcast.emit("gameStarted", roomId);
+    socket.emit("gameStarted", roomId);
   });
 
-  socket.on('getPlayerData', () => {
+  socket.on("getPlayerData", () => {
     // console.log(test);
-    socket.emit('getData', snake);
-    socket.broadcast.emit('getData', snake);
+    socket.emit("getData", snake);
+    socket.broadcast.emit("getData", snake);
   });
 
-  socket.on('sendPlayerData', (snakeData, playerId) => {
-    console.log('player data sent');
-    snake = {data: snakeData, id: playerId}
+  socket.on("sendPlayerData", (snakeData, playerId) => {
+    console.log("player data sent");
+    snake = { data: snakeData, id: playerId };
     // socket.emit('sendData');
     // socket.broadcast.emit('sendData');
   });
@@ -124,4 +134,13 @@ io.on("connection", (socket) => {
     socket.emit('showFood', foodX, foodY);
     socket.broadcast.emit('showFood', foodX, foodY);
   });
+
+  socket.on('getRooms', () => {
+    console.log(openRooms)
+    socket.emit('rooms', openRooms);
+  });
+
+  socket.on('settingsChanged', (r) =>{
+    socket.broadcast.emit('settingsChanged', r);
+  })
 });
