@@ -6,7 +6,7 @@ const io = require("socket.io")(3000, {
 
 let openRooms = [];
 const players = [];
-let snake = {data: [], id: ""}
+let snake = { data: [], id: "" };
 
 class Player {
   constructor(id, username, level, socketId) {
@@ -42,24 +42,6 @@ class Game {
     this.players = this.players.filter((p) => p.id !== player.id);
   }
 }
-
-// class Game {
-//   players = [];
-//   map = null;
-//   gamemode = null;
-
-//   constructor(id) {
-//     this.id = id;
-//   }
-
-//   addPlayer(player) {
-//     this.players.push(player);
-//   }
-
-//   removePlayer(player) {
-//     this.players = this.players.filter((p) => p.id !== player.id);
-//   }
-// }
 
 io.on("connection", (socket) => {
   console.log("connected: " + socket.id);
@@ -115,6 +97,7 @@ io.on("connection", (socket) => {
     openRooms.push(game);
     players.push(player);
     socket.emit("joinedRoom", game);
+    socket.broadcast.emit("newRoom", openRooms);
   });
 
   socket.on("getPlayers", (gameId) => {
@@ -134,16 +117,25 @@ io.on("connection", (socket) => {
     socket.emit("gameStarted", roomId);
   });
 
-  socket.on('getPlayerData', () => {
+  socket.on("getPlayerData", () => {
     // console.log(test);
-    socket.emit('getData', snake);
-    socket.broadcast.emit('getData', snake);
+    socket.emit("getData", snake);
+    socket.broadcast.emit("getData", snake);
   });
 
-  socket.on('sendPlayerData', (snakeData, playerId) => {
-    console.log('player data sent');
-    snake = {data: snakeData, id: playerId}
+  socket.on("sendPlayerData", (snakeData, playerId) => {
+    console.log("player data sent");
+    snake = { data: snakeData, id: playerId };
     // socket.emit('sendData');
     // socket.broadcast.emit('sendData');
   });
+
+  socket.on('getRooms', () => {
+    console.log(openRooms)
+    socket.emit('rooms', openRooms);
+  });
+
+  socket.on('settingsChanged', (r) =>{
+    socket.broadcast.emit('settingsChanged', r);
+  })
 });
