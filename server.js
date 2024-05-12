@@ -20,6 +20,10 @@ class Player {
   joinGame(gameId) {
     this.gameId = gameId;
   }
+
+  getGameId() {
+    return this.gameId;
+  }
 }
 
 class Game {
@@ -103,7 +107,9 @@ io.on("connection", (socket) => {
   socket.on("getPlayers", (gameId) => {
     const game = openRooms.find((g) => g.id === gameId);
     if (game) {
+      console.log("players sent");
       socket.emit("players", game);
+      socket.broadcast.emit("players", game);
     }
   });
 
@@ -130,27 +136,43 @@ io.on("connection", (socket) => {
     // socket.broadcast.emit('sendData');
   });
 
-  socket.on('generateFood', (foodX, foodY) => {
-    socket.emit('showFood', foodX, foodY);
-    socket.broadcast.emit('showFood', foodX, foodY);
+  socket.on("generateFood", (foodX, foodY) => {
+    socket.emit("showFood", foodX, foodY);
+    socket.broadcast.emit("showFood", foodX, foodY);
   });
 
-  socket.on('generatePowerUp', (powerX, powerY) => {
-    socket.emit('showPowerUp', powerX, powerY);
-    socket.broadcast.emit('showPowerUp', powerX, powerY);
+  socket.on("generatePowerUp", (powerX, powerY) => {
+    socket.emit("showPowerUp", powerX, powerY);
+    socket.broadcast.emit("showPowerUp", powerX, powerY);
   });
 
-  socket.on('setPowerUpAvailability', (bool) => {
-    socket.emit('setPowerUpAvailability', bool);
-    socket.broadcast.emit('setPowerUpAvailability', bool);
+  socket.on("setPowerUpAvailability", (bool) => {
+    socket.emit("setPowerUpAvailability", bool);
+    socket.broadcast.emit("setPowerUpAvailability", bool);
   });
 
-  socket.on('getRooms', () => {
-    console.log(openRooms)
-    socket.emit('rooms', openRooms);
+  socket.on("getRooms", () => {
+    socket.emit("rooms", openRooms);
   });
 
-  socket.on('settingsChanged', (r) =>{
-    socket.broadcast.emit('settingsChanged', r);
-  })
+  socket.on("settingsChanged", (r) => {
+    socket.broadcast.emit("settingsChanged", r);
+  });
+
+  socket.on("disconnect", () => {
+    const player = players.find((p) => p.socketId === socket.id);
+    if (player) {
+      const gameId = player.getGameId();
+      const game = openRooms.find((g) => g.id === gameId);
+      if (game) {
+        game.removePlayer(player);
+        socket.emit("playerLeft", game);
+        socket.broadcast.emit("playerLeft", game);
+        console.log("player left room: " + game.id);
+        if (game.players.length === 0) {
+          openRooms = openRooms.filter((g) => g.id !== game.id);
+        }
+      }
+    }
+  });
 });
