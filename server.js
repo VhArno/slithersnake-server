@@ -136,13 +136,26 @@ io.on("connection", (socket) => {
   });
 
   socket.on('generatePowerUp', (powerX, powerY) => {
-    socket.emit('showPowerUp', powerX, powerY);
-    socket.broadcast.emit('showPowerUp', powerX, powerY);
+    // random = Math.floor(Math.random * 3 + 1)
+    //testwaarde
+    random = 2
+    socket.emit('showPowerUp', powerX, powerY, random);
+    socket.broadcast.emit('showPowerUp', powerX, powerY, random);
   });
 
   socket.on('setPowerUpAvailability', (bool) => {
     socket.emit('setPowerUpAvailability', bool);
     socket.broadcast.emit('setPowerUpAvailability', bool);
+  });
+
+  socket.on('activateGhost', (playerId) => {
+    socket.emit('activateGhost', playerId);
+    socket.broadcast.emit('activateGhost', playerId);
+  });
+
+  socket.on('deactivateGhost', (playerId) => {
+    socket.emit('deactivateGhost', playerId);
+    socket.broadcast.emit('deactivateGhost', playerId);
   });
 
   socket.on('getRooms', () => {
