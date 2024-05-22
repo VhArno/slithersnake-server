@@ -36,6 +36,7 @@ class Game {
     this.mode = mode;
     this.players = players;
     this.ping = ping;
+    this.gameStarted = false;
   }
 
   addPlayer(player) {
@@ -71,6 +72,10 @@ io.on("connection", (socket) => {
       socket.id
     );
     if (game && player) {
+      if (game.gameStarted){
+        socket.emit("gameBusy", gameId, socket.id);
+        return;
+      }
       game.addPlayer(player);
       player.gameId = gameId;
       players.push(player);
@@ -80,17 +85,17 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("createRoom", (room, p) => {
+  socket.on("createRoom", (room, p, rId) => {
     const player = new Player(
       p._value.id,
       p._value.username,
       p._value.level,
       socket.id
     );
-    player.joinGame(room.id);
-    player.room = room.id;
+    player.joinGame(rId);
+    player.room = rId;
     const game = new Game(
-      room.id,
+      rId,
       room.name,
       room.map,
       room.mode,
@@ -117,6 +122,7 @@ io.on("connection", (socket) => {
     const game = openRooms.find((g) => g.id === roomId);
     // game.map = map;
     // game.gamemode = gamemode;
+    game.gameStarted = true;
     console.log("game started");
     console.log(roomId);
     socket.broadcast.emit("gameStarted", roomId);
@@ -176,6 +182,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const player = players.find((p) => p.socketId === socket.id);
     if (player) {
+      console.log("player disconnected: " + player.id);
       const gameId = player.getGameId();
       const game = openRooms.find((g) => g.id === gameId);
       if (game) {
@@ -189,4 +196,14 @@ io.on("connection", (socket) => {
       }
     }
   });
+  checkEmptyRooms();
 });
+
+function checkEmptyRooms() {
+  //check if there are empty rooms and remove them
+  openRooms.forEach((room) => {
+    if (room.players.length === 0) {
+      openRooms = openRooms.filter((g) => g.id !== room.id);
+    }
+  });
+}
