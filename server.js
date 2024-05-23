@@ -207,3 +207,82 @@ function checkEmptyRooms() {
     }
   });
 }
+
+/* Add a duel in db when game starts */
+// -> post .../api/duels
+async function postDuelDb(duel_id, score) {
+  const url = `${import.meta.env.VITE_BASE_URL}/api/duels`;
+
+  const body = {
+    duel_id: duel_id,
+    score: score,
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error posting duel:', error);
+    throw error;
+  }
+}
+/*// Example usage
+postDuelDb('12345', 100)
+  .then(data => {
+    console.log('Duel posted successfully:', data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });*/
+
+-
+/* patch a duel (end time) when game ends */
+// -> patch .../api/duels
+async function patchDuelDb(duel_id) {
+  const url = `${import.meta.env.VITE_BASE_URL}/api/duels`;
+
+  const body = {
+    duel_id: duel_id,
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error patching duel:', error);
+    throw error;
+  }
+}
+
+/*// Example usage
+patchDuelDb('12345')
+  .then(data => {
+    console.log('Duel patched successfully:', data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });*/
