@@ -15,6 +15,11 @@ class Player {
     this.level = level;
     this.socketId = socketId;
     this.room = null;
+    this.creator = false;
+  }
+
+  setCreator() {
+    this.creator = true;
   }
 
   joinGame(gameId) {
@@ -72,7 +77,7 @@ io.on("connection", (socket) => {
       socket.id
     );
     if (game && player) {
-      if (game.gameStarted){
+      if (game.gameStarted) {
         socket.emit("gameBusy", gameId, socket.id);
         return;
       }
@@ -92,16 +97,10 @@ io.on("connection", (socket) => {
       p._value.level,
       socket.id
     );
+    player.setCreator();
     player.joinGame(rId);
     player.room = rId;
-    const game = new Game(
-      rId,
-      room.name,
-      room.map,
-      room.mode,
-      room.players,
-      0
-    );
+    const game = new Game(rId, room.name, room.map, room.mode, room.players, 0);
     game.addPlayer(player);
     openRooms.push(game);
     players.push(player);
@@ -150,29 +149,29 @@ io.on("connection", (socket) => {
   socket.on("generatePowerUp", (powerX, powerY) => {
     // random = Math.floor(Math.random * 3 + 1)
     //testwaarde
-    random = 2
+    random = 2;
     socket.emit("showPowerUp", powerX, powerY, random);
     socket.broadcast.emit("showPowerUp", powerX, powerY, random);
   });
 
-  socket.on('setPowerUpAvailability', (bool) => {
-    socket.emit('setPowerUpAvailability', bool);
-    socket.broadcast.emit('setPowerUpAvailability', bool);
+  socket.on("setPowerUpAvailability", (bool) => {
+    socket.emit("setPowerUpAvailability", bool);
+    socket.broadcast.emit("setPowerUpAvailability", bool);
   });
 
-  socket.on('activateGhost', (playerId) => {
-    socket.emit('activateGhost', playerId);
-    socket.broadcast.emit('activateGhost', playerId);
+  socket.on("activateGhost", (playerId) => {
+    socket.emit("activateGhost", playerId);
+    socket.broadcast.emit("activateGhost", playerId);
   });
 
-  socket.on('deactivateGhost', (playerId) => {
-    socket.emit('deactivateGhost', playerId);
-    socket.broadcast.emit('deactivateGhost', playerId);
+  socket.on("deactivateGhost", (playerId) => {
+    socket.emit("deactivateGhost", playerId);
+    socket.broadcast.emit("deactivateGhost", playerId);
   });
 
-  socket.on('getRooms', () => {
-    console.log(openRooms)
-    socket.emit('rooms', openRooms);
+  socket.on("getRooms", () => {
+    console.log(openRooms);
+    socket.emit("rooms", openRooms);
   });
 
   socket.on("settingsChanged", (r) => {
@@ -182,21 +181,41 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const player = players.find((p) => p.socketId === socket.id);
     if (player) {
-      console.log("player disconnected: " + player.id);
-      const gameId = player.getGameId();
-      const game = openRooms.find((g) => g.id === gameId);
-      if (game) {
-        game.removePlayer(player);
-        socket.emit("playerLeft", game);
-        socket.broadcast.emit("playerLeft", game);
-        console.log("player left room: " + game.id);
-        if (game.players.length === 0) {
-          openRooms = openRooms.filter((g) => g.id !== game.id);
-        }
-      }
+      removePlayer(player);
+    }
+    checkEmptyRooms();
+  });
+
+  socket.on("leaveRoom", (plId) => {
+    const player = players.find((p) => p.socketId === plId);
+    if (player) {
+      removePlayer(player);
     }
   });
-  checkEmptyRooms();
+
+  function removePlayer(player) {
+    console.log("player disconnected: " + player.id);
+    const gameId = player.getGameId();
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      console.log(player.socketId);
+      game.removePlayer(player);
+      if (player.creator) {
+        console.log("creator left room: " + game.id);
+        console.log("new creator: " + game.players[0].socketId);
+        game.players[0].setCreator();
+        const pl = game.players[0];
+        socket.emit("newCreator", pl.socketId);
+        socket.broadcast.emit("newCreator", pl.socketId);
+      }
+      socket.emit("playerLeft", game);
+      socket.broadcast.emit("playerLeft", game);
+      console.log("player left room: " + game.id);
+      if (game.players.length === 0) {
+        openRooms = openRooms.filter((g) => g.id !== game.id);
+      }
+    }
+  }
 });
 
 function checkEmptyRooms() {
