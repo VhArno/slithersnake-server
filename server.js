@@ -1,4 +1,6 @@
-const io = require("socket.io")(3000, {
+import { Server } from "socket.io";
+
+const io = new Server(3000, {
   cors: {
     origin: "http://localhost:5173",
   },
@@ -84,7 +86,6 @@ io.on("connection", (socket) => {
       game.addPlayer(player);
       player.gameId = gameId;
       players.push(player);
-      console.log("player joined room: " + game.id);
       socket.broadcast.emit("joinedRoom", game);
       socket.emit("joinedRoom", game);
     }
@@ -113,19 +114,14 @@ io.on("connection", (socket) => {
     if (game) {
       console.log("players sent");
       socket.emit("players", game);
-      socket.broadcast.emit("players", game);
     }
   });
 
-  socket.on("startGame", (roomId) => {
-    const game = openRooms.find((g) => g.id === roomId);
-    // game.map = map;
-    // game.gamemode = gamemode;
+  socket.on("startGame", (room) => {
+    const game = openRooms.find((g) => g.id === room.id);
     game.gameStarted = true;
-    console.log("game started");
-    console.log(roomId);
-    socket.broadcast.emit("gameStarted", roomId);
-    socket.emit("gameStarted", roomId);
+    socket.emit("gameStarted", room.id);
+    socket.broadcast.emit("gameStarted", room.id);
   });
 
   socket.on("getPlayerData", () => {
@@ -149,7 +145,7 @@ io.on("connection", (socket) => {
   socket.on("generatePowerUp", (powerX, powerY) => {
     // random = Math.floor(Math.random * 3 + 1)
     //testwaarde
-    random = 2;
+    const random = 2;
     socket.emit("showPowerUp", powerX, powerY, random);
     socket.broadcast.emit("showPowerUp", powerX, powerY, random);
   });
@@ -170,7 +166,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("getRooms", () => {
-    console.log(openRooms);
     socket.emit("rooms", openRooms);
   });
 
@@ -194,15 +189,11 @@ io.on("connection", (socket) => {
   });
 
   function removePlayer(player) {
-    console.log("player disconnected: " + player.id);
     const gameId = player.getGameId();
     const game = openRooms.find((g) => g.id === gameId);
     if (game) {
-      console.log(player.socketId);
       game.removePlayer(player);
       if (player.creator) {
-        console.log("creator left room: " + game.id);
-        console.log("new creator: " + game.players[0].socketId);
         game.players[0].setCreator();
         const pl = game.players[0];
         socket.emit("newCreator", pl.socketId);
@@ -210,7 +201,6 @@ io.on("connection", (socket) => {
       }
       socket.emit("playerLeft", game);
       socket.broadcast.emit("playerLeft", game);
-      console.log("player left room: " + game.id);
       if (game.players.length === 0) {
         openRooms = openRooms.filter((g) => g.id !== game.id);
       }
