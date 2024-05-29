@@ -1,4 +1,7 @@
 import { Server } from "socket.io";
+import { config } from "dotenv";
+
+config();
 
 const io = new Server(3000, {
   cors: {
@@ -7,7 +10,7 @@ const io = new Server(3000, {
 });
 
 let openRooms = [];
-const players = [];
+let players = [];
 let snake = { data: [], id: "" };
 
 class Player {
@@ -53,6 +56,10 @@ class Game {
   removePlayer(player) {
     this.players = this.players.filter((p) => p.id !== player.id);
   }
+
+  setDuelId(duelId) {
+    this.duelId = duelId;
+  }
 }
 
 io.on("connection", (socket) => {
@@ -80,7 +87,8 @@ io.on("connection", (socket) => {
     );
     if (game && player) {
       if (game.gameStarted) {
-        socket.emit("gameBusy", gameId, socket.id);
+        socket.emit("gameBusy", gameId);
+        console.log("game is busy");
         return;
       }
       game.addPlayer(player);
@@ -119,9 +127,22 @@ io.on("connection", (socket) => {
 
   socket.on("startGame", (room) => {
     const game = openRooms.find((g) => g.id === room.id);
-    game.gameStarted = true;
-    socket.emit("gameStarted", room.id);
-    socket.broadcast.emit("gameStarted", room.id);
+    if (game) {
+      console.log(game);
+      game.gameStarted = true;
+      postDuelDb(game.id, game.mode.id, game.map.id)
+        .then((data) => {
+          console.log("Duel posted successfully:", data);
+          game.setDuelId(data.data.duel_id);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+
+      socket.emit("gameStarted", room.id);
+      console.log("game started");
+      socket.broadcast.emit("gameStarted", room.id);
+    }
   });
 
   socket.on("getPlayerData", () => {
@@ -171,6 +192,13 @@ io.on("connection", (socket) => {
 
   socket.on("settingsChanged", (r) => {
     socket.broadcast.emit("settingsChanged", r);
+    // update the room settings
+    const game = openRooms.find((g) => g.id === r.id);
+    if (game) {
+      game.mode = r.mode;
+      game.map = r.map;
+      game.players = r.players;
+    }
   });
 
   socket.on("disconnect", () => {
@@ -188,16 +216,70 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("leaveGameInProgress", (gameId) => {
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      game.players.forEach((player) => {
+        players = players.filter((p) => p.id !== player.id);
+      });
+      openRooms = openRooms.filter((g) => g.id !== game.id);
+      socket.emit("newRoom", openRooms);
+      socket.broadcast.emit("newRoom", openRooms);
+    }
+
+  });
+
+  socket.on("checkStatus", (gameId) => {
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      console.log("game status checked");
+      console.log(game);
+      if (game.gameStarted) {
+        socket.emit("gameBusy", gameId, socket.id);
+      }
+    }
+  });
+
+  socket.on("gameOver", (gameId) => {
+    console.log("game over");
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      game.gameStarted = false;
+      patchDuelDb(game.duelId)
+        .then((data) => {
+          console.log("Duel patched successfully:", data);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+
+      setTimeout(() => {
+        socket.emit("gameOver", game.id);
+        socket.broadcast.emit("gameOver", game.id);
+        game.players.forEach((player) => {
+          players = players.filter((p) => p.id !== player.id);
+        });
+        openRooms = openRooms.filter((g) => g.id !== game.id);
+        socket.emit("newRoom", openRooms);
+      }, 5000);
+    }
+  });
+
   function removePlayer(player) {
     const gameId = player.getGameId();
     const game = openRooms.find((g) => g.id === gameId);
     if (game) {
       game.removePlayer(player);
       if (player.creator) {
-        game.players[0].setCreator();
-        const pl = game.players[0];
-        socket.emit("newCreator", pl.socketId);
-        socket.broadcast.emit("newCreator", pl.socketId);
+        if (game.players.length > 0) {
+          game.players[0].setCreator();
+          const pl = game.players[0];
+          socket.emit("newCreator", pl.socketId);
+          socket.broadcast.emit("newCreator", pl.socketId);
+        } else {
+          openRooms = openRooms.filter((g) => g.id !== game.id);
+          socket.emit("evacuateRoom", game.id);
+        }
       }
       socket.emit("playerLeft", game);
       socket.broadcast.emit("playerLeft", game);
@@ -219,19 +301,20 @@ function checkEmptyRooms() {
 
 /* Add a duel in db when game starts */
 // -> post .../api/duels
-async function postDuelDb(duel_id, score) {
-  const url = `${import.meta.env.VITE_BASE_URL}/api/duels`;
+async function postDuelDb(duel_id, gamemode, map) {
+  const url = `${process.env.API_BASE_URL}/api/duels`;
 
   const body = {
     duel_id: duel_id,
-    score: score,
+    gamemodes_id: gamemode,
+    maps_id: map,
   };
 
   try {
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });
@@ -243,7 +326,7 @@ async function postDuelDb(duel_id, score) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error posting duel:', error);
+    console.error("Error posting duel:", error);
     throw error;
   }
 }
@@ -256,11 +339,10 @@ postDuelDb('12345', 100)
     console.error('Error:', error);
   });*/
 
--
 /* patch a duel (end time) when game ends */
 // -> patch .../api/duels
 async function patchDuelDb(duel_id) {
-  const url = `${import.meta.env.VITE_BASE_URL}/api/duels`;
+  const url = `${process.env.API_BASE_URL}/api/duels`;
 
   const body = {
     duel_id: duel_id,
@@ -268,9 +350,9 @@ async function patchDuelDb(duel_id) {
 
   try {
     const response = await fetch(url, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });
@@ -282,7 +364,7 @@ async function patchDuelDb(duel_id) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error patching duel:', error);
+    console.error("Error patching duel:", error);
     throw error;
   }
 }
