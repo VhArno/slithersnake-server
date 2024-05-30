@@ -186,6 +186,16 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("deactivateGhost", playerId);
   });
 
+  socket.on("activateInvis", (playerId) => {
+    socket.emit("activateInvis", playerId);
+    socket.broadcast.emit("activateInvis", playerId);
+  });
+
+  socket.on("deactivateInvis", (playerId) => {
+    socket.emit("deactivateInvis", playerId);
+    socket.broadcast.emit("deactivateInvis", playerId);
+  });
+
   socket.on("getRooms", () => {
     socket.emit("rooms", openRooms);
   });
