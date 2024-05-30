@@ -77,6 +77,11 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("ping", () => {
+    // Emit a pong event in response to the ping
+    socket.emit("pong");
+  });
+
   socket.on("joinRoom", (gameId, p) => {
     const game = openRooms.find((g) => g.id === gameId);
     const player = new Player(
