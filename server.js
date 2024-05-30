@@ -166,7 +166,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("generatePowerUp", (powerX, powerY) => {
-    random = Math.floor(Math.random * 4 + 1)
+    let random = Math.floor(Math.random() * 4 + 1)
     //testwaarde
     // const random = 3;
     socket.emit("showPowerUp", powerX, powerY, random);
