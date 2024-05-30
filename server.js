@@ -323,6 +323,47 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("prepNewRoom", (roomId, sId) => {
+    //remove all the players in the room from the players array
+    const game = openRooms.find((g) => g.id === roomId);
+    console.log(game);
+    if (game) {
+      console.log("game found");
+      game.players.forEach((player) => {
+        players = players.filter((p) => p.id !== player.id);
+      });
+      openRooms = openRooms.filter((g) => g.id !== roomId);
+      console.log("Got here");
+      socket.emit("newRoom", openRooms);
+      socket.broadcast.emit("newRoom", openRooms);
+    }
+    socket.emit("prepNewRoom", sId);
+  });
+
+  socket.on("evacuateOthers", (roomId) => {
+    socket.broadcast.emit("evacuateRoom", roomId);
+  });
+
+  socket.on("checkIfRoomExists", (roomId) => {
+    console.log("checking if room exists");
+    console.log(roomId);
+    const game = openRooms.find((g) => g.id === roomId);
+    if (game) {
+      socket.emit("roomExists", roomId);
+      socket.broadcast.emit("roomExists", roomId);
+    } else {
+      socket.emit("roomDoesNotExist", roomId);
+      socket.broadcast.emit("roomExists", roomId);
+    }
+  });
+
+  socket.on("nextGameUrl", (gameId, newGameId) => {
+    console.log("next game url", newGameId);
+    console.log("next game url", newGameId);
+    socket.emit("nextGameUrl", gameId, newGameId);
+    socket.broadcast.emit("nextGameUrl", gameId, newGameId);
+  });
+
   socket.on("gameOver", (gameId) => {
     console.log("game over");
     const game = openRooms.find((g) => g.id === gameId);
