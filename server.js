@@ -126,12 +126,13 @@ io.on("connection", (socket) => {
     }
   });
 
+  /*
   socket.on("generateWalls", () => {
     console.log('generatewalls server')
     const walls = generateWalls();
-    socket.emit("walls", obstacles);
+    socket.emit("Walls", obstacles);
     socket.broadcast.emit("walls", obstacles);
-  })
+  })*/
 
   socket.on("startGame", (room) => {
     const game = openRooms.find((g) => g.id === room.id);
@@ -152,6 +153,14 @@ io.on("connection", (socket) => {
       console.log("game started");
       socket.broadcast.emit("gameStarted", room.id);
     }
+    
+    //checking if gamemode is wall and 
+    if(game.map.id === 2){
+      const obstacles = generateWalls();
+      console.log(obstacles);
+      socket.emit("wallsGenerated", obstacles);
+      socket.broadcast.emit("wallsGenerated", obstacles);
+    }
   });
 
   socket.on("getPlayerData", () => {
@@ -161,7 +170,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendPlayerData", (snakeData, playerId) => {
-    console.log("player data sent");
+    //console.log("player data sent");
     snake = { data: snakeData, id: playerId };
     // socket.emit('sendData');
     // socket.broadcast.emit('sendData');
