@@ -148,33 +148,34 @@ io.on("connection", (socket) => {
         .then((data) => {
           console.log("Duel posted successfully:", data);
           game.setDuelId(data.data.duel_id);
+          socket.emit("duelId", data.data.duel_id);
+          socket.broadcast.emit("duelId", data.data.duel_id);
         })
         .catch((error) => {
           console.error("Error:", error);
         });
 
-      socket.emit("duelId", game.duelId);
       socket.emit("gameStarted", room.id);
       console.log("game started");
       socket.broadcast.emit("gameStarted", room.id);
     }
-    
+
     //check gamemode and run needed logic
     socket.on("checkModeMap", () => {
-      if(!game){
-        console.log('game is not defined')
-      } else{
+      if (!game) {
+        console.log("game is not defined");
+      } else {
         //checking maps
         if (game.map.id === 1) {
           console.log("map is normal");
         } else if (game.map.id === 2) {
           const obstacles = generateWalls();
           console.log(obstacles);
-          socket.emit("wallsGenerated", obstacles); 
+          socket.emit("wallsGenerated", obstacles);
           socket.broadcast.emit("wallsGenerated", obstacles);
         } else if (game.map.id === 3) {
           console.log("gamemode is nowalls");
-          socket.emit("teleportTrue"); 
+          socket.emit("teleportTrue");
           socket.broadcast.emit("teleportTrue");
         }
 
@@ -183,13 +184,13 @@ io.on("connection", (socket) => {
           console.log("gamemode is normal");
         } else if (game.mode.id === 2) {
           console.log("gamemode is power-ups");
-          socket.emit("generatePowerUps")
-          socket.broadcast.emit("generatePowerUps")
+          socket.emit("generatePowerUps");
+          socket.broadcast.emit("generatePowerUps");
         } else if (game.mode.id === 3) {
           console.log("gamemode is limited-time");
-          socket.emit("setTimeLimit")
-          socket.broadcast.emit("setTimeLimit")
-        } 
+          socket.emit("setTimeLimit");
+          socket.broadcast.emit("setTimeLimit");
+        }
       }
     });
   });
@@ -213,7 +214,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("generatePowerUp", (powerX, powerY) => {
-    let random = Math.floor(Math.random() * 4 + 1)
+    let random = Math.floor(Math.random() * 4 + 1);
     //testwaarde
     // const random = 3;
     socket.emit("showPowerUp", powerX, powerY, random);
@@ -483,18 +484,17 @@ patchDuelDb('12345')
     console.error('Error:', error);
   });*/
 
+//server side wall generation
 
-  //server side wall generation
-
-  function generateWalls(){
-    // Add some obstacles
-    const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
-    const obstacles = [];
-    for (let i = 0; i < numObstacles; i++) {
-      //voorlopig 20 niet krijgen van de client kan aangepast worden
-      const obstacleX = Math.floor(Math.random() * 20);
-      const obstacleY = Math.floor(Math.random() * 20);
-      obstacles.push({ x: obstacleX, y: obstacleY });
-    }
-    return obstacles;
+function generateWalls() {
+  // Add some obstacles
+  const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
+  const obstacles = [];
+  for (let i = 0; i < numObstacles; i++) {
+    //voorlopig 20 niet krijgen van de client kan aangepast worden
+    const obstacleX = Math.floor(Math.random() * 20);
+    const obstacleY = Math.floor(Math.random() * 20);
+    obstacles.push({ x: obstacleX, y: obstacleY });
   }
+  return obstacles;
+}
