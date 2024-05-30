@@ -169,6 +169,8 @@ io.on("connection", (socket) => {
           socket.broadcast.emit("wallsGenerated", obstacles);
         } else if (game.map.id === 3) {
           console.log("gamemode is nowalls");
+          socket.emit("teleportTrue"); 
+          socket.broadcast.emit("teleportTrue");
         }
 
         //checking modes
