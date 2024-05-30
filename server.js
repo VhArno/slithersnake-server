@@ -109,13 +109,18 @@ io.on("connection", (socket) => {
     player.setCreator();
     player.joinGame(rId);
     player.room = rId;
-    const game = new Game(rId, room.name, room.map, room.mode, room.players, 0);
+    const game = new Game(rId, room.name, room.map, room.mode, room.players, Math.floor(Math.random() * (40 - 20) + 20));
     game.addPlayer(player);
     openRooms.push(game);
     players.push(player);
     socket.emit("joinedRoom", game);
     socket.broadcast.emit("newRoom", openRooms);
     checkEmptyRooms();
+  });
+
+  // get ping
+  socket.on("ping", (callback) => {
+    callback();
   });
 
   socket.on("getPlayers", (gameId) => {
