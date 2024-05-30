@@ -154,7 +154,7 @@ io.on("connection", (socket) => {
       socket.broadcast.emit("gameStarted", room.id);
     }
     
-    //checking if gamemode is wall and 
+    //checking if gamemode is wall and logging ansd pushing walls to frontend
     if(game.map.id === 2){
       const obstacles = generateWalls();
       console.log(obstacles);
