@@ -161,7 +161,24 @@ io.on("connection", (socket) => {
       socket.emit("wallsGenerated", obstacles);
       socket.broadcast.emit("wallsGenerated", obstacles);
     }
+    //check gamemode and run needed logic
+    socket.on("checkGameMode", () => {
+      if(!game){
+        console.log('game is not defined')
+      } else{
+        if (game.map.id === 1) {
+          console.log("gamemode is normal");
+        } else if (game.map.id === 2) {
+          const obstacles = generateWalls();
+          console.log(obstacles);
+          io.emit("wallsGenerated", obstacles); 
+        } else if (game.map.id === 3) {
+          console.log("gamemode is nowalls");
+        }
+      }
+    });
   });
+
 
   socket.on("getPlayerData", () => {
     // console.log(test);
