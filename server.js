@@ -154,7 +154,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendPlayerData", (snakeData, playerId) => {
-    console.log("player data sent");
+    console.log(playerId + "sent data");
     snake = { data: snakeData, id: playerId };
     // socket.emit('sendData');
     // socket.broadcast.emit('sendData');
@@ -166,9 +166,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("generatePowerUp", (powerX, powerY) => {
-    // random = Math.floor(Math.random * 3 + 1)
+    random = Math.floor(Math.random * 4 + 1)
     //testwaarde
-    const random = 2;
+    // const random = 3;
     socket.emit("showPowerUp", powerX, powerY, random);
     socket.broadcast.emit("showPowerUp", powerX, powerY, random);
   });
