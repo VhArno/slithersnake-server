@@ -125,6 +125,13 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("generateWalls", () => {
+    console.log('generatewalls server')
+    const walls = generateWalls();
+    socket.emit("walls", obstacles);
+    socket.broadcast.emit("walls", obstacles);
+  })
+
   socket.on("startGame", (room) => {
     const game = openRooms.find((g) => g.id === room.id);
     if (game) {
@@ -191,7 +198,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("settingsChanged", (r) => {
-    socket.broadcast.emit("settingsChanged", r);
     // update the room settings
     const game = openRooms.find((g) => g.id === r.id);
     if (game) {
@@ -199,6 +205,7 @@ io.on("connection", (socket) => {
       game.map = r.map;
       game.players = r.players;
     }
+    socket.broadcast.emit("settingsChanged", r);
   });
 
   socket.on("disconnect", () => {
@@ -377,3 +384,19 @@ patchDuelDb('12345')
   .catch(error => {
     console.error('Error:', error);
   });*/
+
+
+  //server side wall generation
+
+  function generateWalls(){
+    // Add some obstacles
+    const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
+    const obstacles = [];
+    for (let i = 0; i < numObstacles; i++) {
+      //voorlopig 20 niet krijgen van de client kan aangepast worden
+      const obstacleX = Math.floor(Math.random() * 20);
+      const obstacleY = Math.floor(Math.random() * 20);
+      obstacles.push({ x: obstacleX, y: obstacleY });
+    }
+    return obstacles;
+  }
