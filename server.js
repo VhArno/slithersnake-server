@@ -154,29 +154,38 @@ io.on("connection", (socket) => {
       socket.broadcast.emit("gameStarted", room.id);
     }
     
-    //checking if gamemode is wall and logging ansd pushing walls to frontend
-    if(game.map.id === 2){
-      const obstacles = generateWalls();
-      console.log(obstacles);
-      socket.emit("wallsGenerated", obstacles);
-      socket.broadcast.emit("wallsGenerated", obstacles);
-    }
     //check gamemode and run needed logic
-    socket.on("checkGameMode", () => {
+    socket.on("checkModeMap", () => {
       if(!game){
         console.log('game is not defined')
       } else{
         if (game.map.id === 1) {
-          console.log("gamemode is normal");
+          console.log("map is normal");
         } else if (game.map.id === 2) {
           const obstacles = generateWalls();
           console.log(obstacles);
-          io.emit("wallsGenerated", obstacles); 
+          socket.emit("wallsGenerated", obstacles); 
+          socket.broadcast.emit("wallsGenerated", obstacles);
         } else if (game.map.id === 3) {
           console.log("gamemode is nowalls");
         }
+
+        //checking modes
+        if (game.mode.id === 1) {
+          console.log("gamemode is normal");
+        } else if (game.mode.id === 2) {
+          console.log("gamemode is power-ups");
+          socket.emit("generatePowerUps")
+          socket.broadcast.emit("generatePowerUps")
+        } else if (game.mode.id === 3) {
+          console.log("gamemode is limited-time");
+          socket.emit("setTimeLimit")
+          socket.broadcast.emit("setTimeLimit")
+        } 
       }
     });
+
+    socket.on("")
   });
 
 
