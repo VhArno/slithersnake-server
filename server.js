@@ -115,6 +115,7 @@ io.on("connection", (socket) => {
     players.push(player);
     socket.emit("joinedRoom", game);
     socket.broadcast.emit("newRoom", openRooms);
+    checkEmptyRooms();
   });
 
   socket.on("getPlayers", (gameId) => {
@@ -139,6 +140,7 @@ io.on("connection", (socket) => {
           console.error("Error:", error);
         });
 
+      socket.emit("duelId", game.duelId);
       socket.emit("gameStarted", room.id);
       console.log("game started");
       socket.broadcast.emit("gameStarted", room.id);
@@ -223,8 +225,38 @@ io.on("connection", (socket) => {
     const player = players.find((p) => p.socketId === plId);
     if (player) {
       removePlayer(player);
+      checkEmptyRooms();
     }
   });
+
+  function removePlayer(player) {
+    const gameId = player.getGameId();
+    console.log(gameId);
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      game.removePlayer(player);
+      if (player.creator) {
+        console.log("creator left");
+        console.log(game.players);
+        console.log(game.players[0]);
+        if (game.players.length > 0) {
+          const playerId = game.players[0].socketId;
+          const pl = players.find((p) => p.socketId === playerId);
+          pl.setCreator();
+          socket.emit("newCreator", pl.socketId);
+          socket.broadcast.emit("newCreator", pl.socketId);
+        } else {
+          openRooms = openRooms.filter((g) => g.id !== game.id);
+          socket.emit("evacuateRoom", game.id);
+        }
+      }
+      socket.emit("playerLeft", game);
+      socket.broadcast.emit("playerLeft", game);
+      if (game.players.length === 0) {
+        openRooms = openRooms.filter((g) => g.id !== game.id);
+      }
+    }
+  }
 
   socket.on("leaveGameInProgress", (gameId) => {
     const game = openRooms.find((g) => g.id === gameId);
@@ -236,7 +268,6 @@ io.on("connection", (socket) => {
       socket.emit("newRoom", openRooms);
       socket.broadcast.emit("newRoom", openRooms);
     }
-
   });
 
   socket.on("checkStatus", (gameId) => {
@@ -274,30 +305,6 @@ io.on("connection", (socket) => {
       }, 5000);
     }
   });
-
-  function removePlayer(player) {
-    const gameId = player.getGameId();
-    const game = openRooms.find((g) => g.id === gameId);
-    if (game) {
-      game.removePlayer(player);
-      if (player.creator) {
-        if (game.players.length > 0) {
-          game.players[0].setCreator();
-          const pl = game.players[0];
-          socket.emit("newCreator", pl.socketId);
-          socket.broadcast.emit("newCreator", pl.socketId);
-        } else {
-          openRooms = openRooms.filter((g) => g.id !== game.id);
-          socket.emit("evacuateRoom", game.id);
-        }
-      }
-      socket.emit("playerLeft", game);
-      socket.broadcast.emit("playerLeft", game);
-      if (game.players.length === 0) {
-        openRooms = openRooms.filter((g) => g.id !== game.id);
-      }
-    }
-  }
 });
 
 function checkEmptyRooms() {
