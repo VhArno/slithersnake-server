@@ -159,6 +159,7 @@ io.on("connection", (socket) => {
       if(!game){
         console.log('game is not defined')
       } else{
+        //checking maps
         if (game.map.id === 1) {
           console.log("map is normal");
         } else if (game.map.id === 2) {
@@ -184,10 +185,7 @@ io.on("connection", (socket) => {
         } 
       }
     });
-
-    socket.on("")
   });
-
 
   socket.on("getPlayerData", () => {
     // console.log(test);
