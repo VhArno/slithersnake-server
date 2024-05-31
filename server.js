@@ -161,19 +161,14 @@ io.on("connection", (socket) => {
     }
 
     //check gamemode and run needed logic
-    socket.on("checkModeMap", () => {
+    socket.on("checkModeMap", (id) => {
       if (!game) {
         console.log("game is not defined");
-      } else {
+      } else if(game.id === id){
+
         //checking maps
         console.log('gamemap id: ' + game.map.id)
         if (game.map.id === 1) {
-          //empty obstacles in case last game mode it was created and placed in the grid
-          /*
-          if ( obstacles !== 'undefined' && obstacles !== null) {
-            obstacles.length = 0;
-          }
-          */
 
           socket.emit("teleportFalse");
           socket.broadcast.emit("teleportFalse");
@@ -181,12 +176,6 @@ io.on("connection", (socket) => {
           console.log("MAP is normal");
 
         } else if (game.map.id === 2) {
-
-          /*
-          if (typeof obstacles !== 'undefined' && obstacles !== null) {
-            obstacles.length = 0;
-          }
-          */
 
           socket.emit("teleportFalse");
           socket.broadcast.emit("teleportFalse");
@@ -213,7 +202,7 @@ io.on("connection", (socket) => {
         if (game.mode.id === 1) {
           console.log("MODE is normal");
         } else if (game.mode.id === 2) {
-          console.log("MODE is power-ups");
+          console.log("MODE is power-upsno");
           socket.emit("generatePowerUps");
           socket.broadcast.emit("generatePowerUps");
         } else if (game.mode.id === 3) {
@@ -221,6 +210,8 @@ io.on("connection", (socket) => {
           socket.emit("setTimeLimit");
           socket.broadcast.emit("setTimeLimit");
         }
+      } else{
+        console.log('game id does not match')
       }
     });
   });
@@ -246,7 +237,7 @@ io.on("connection", (socket) => {
   socket.on("generatePowerUp", (powerX, powerY) => {
     let random = Math.floor(Math.random() * 4 + 1);
     //testwaarde
-    // const random = 3;
+    // const random = 4;
     socket.emit("showPowerUp", powerX, powerY, random);
     socket.broadcast.emit("showPowerUp", powerX, powerY, random);
   });
