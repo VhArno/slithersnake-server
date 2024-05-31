@@ -166,28 +166,56 @@ io.on("connection", (socket) => {
         console.log("game is not defined");
       } else {
         //checking maps
+        
+        // empty obstacles 
+
+        console.log('gamemap id: ' + game.map.id)
         if (game.map.id === 1) {
-          console.log("map is normal");
+          if (typeof obstacles !== 'undefined' && obstacles !== null) {
+            obstacles.length = 0;
+          }
+
+          socket.emit("teleportFalse");
+          socket.broadcast.emit("teleportFalse");
+
+          console.log("MAP is normal");
+
         } else if (game.map.id === 2) {
+
+          if (typeof obstacles !== 'undefined' && obstacles !== null) {
+            obstacles.length = 0;
+          }
+
+          socket.emit("teleportFalse");
+          socket.broadcast.emit("teleportFalse");
+
+          console.log("MAP is walls")
           const obstacles = generateWalls();
           console.log(obstacles);
           socket.emit("wallsGenerated", obstacles);
           socket.broadcast.emit("wallsGenerated", obstacles);
+
         } else if (game.map.id === 3) {
-          console.log("gamemode is nowalls");
+          
+          if (typeof obstacles !== 'undefined' && obstacles !== null) {
+            obstacles.length = 0;
+          }
+
+          console.log("MAP is nowalls");
           socket.emit("teleportTrue");
           socket.broadcast.emit("teleportTrue");
+
         }
 
         //checking modes
         if (game.mode.id === 1) {
-          console.log("gamemode is normal");
+          console.log("MODE is normal");
         } else if (game.mode.id === 2) {
-          console.log("gamemode is power-ups");
+          console.log("MODE is power-ups");
           socket.emit("generatePowerUps");
           socket.broadcast.emit("generatePowerUps");
         } else if (game.mode.id === 3) {
-          console.log("gamemode is limited-time");
+          console.log("MODE is limited-time");
           socket.emit("setTimeLimit");
           socket.broadcast.emit("setTimeLimit");
         }
@@ -202,7 +230,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendPlayerData", (snakeData, playerId) => {
-    console.log(playerId + "sent data");
+    //console.log(playerId + "sent data");
     snake = { data: snakeData, id: playerId };
     // socket.emit('sendData');
     // socket.broadcast.emit('sendData');
