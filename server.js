@@ -166,14 +166,14 @@ io.on("connection", (socket) => {
         console.log("game is not defined");
       } else {
         //checking maps
-        
-        // empty obstacles 
-
         console.log('gamemap id: ' + game.map.id)
         if (game.map.id === 1) {
-          if (typeof obstacles !== 'undefined' && obstacles !== null) {
+          //empty obstacles in case last game mode it was created and placed in the grid
+          /*
+          if ( obstacles !== 'undefined' && obstacles !== null) {
             obstacles.length = 0;
           }
+          */
 
           socket.emit("teleportFalse");
           socket.broadcast.emit("teleportFalse");
@@ -182,9 +182,11 @@ io.on("connection", (socket) => {
 
         } else if (game.map.id === 2) {
 
+          /*
           if (typeof obstacles !== 'undefined' && obstacles !== null) {
             obstacles.length = 0;
           }
+          */
 
           socket.emit("teleportFalse");
           socket.broadcast.emit("teleportFalse");
@@ -196,7 +198,7 @@ io.on("connection", (socket) => {
           socket.broadcast.emit("wallsGenerated", obstacles);
 
         } else if (game.map.id === 3) {
-          
+
           if (typeof obstacles !== 'undefined' && obstacles !== null) {
             obstacles.length = 0;
           }
@@ -516,12 +518,12 @@ patchDuelDb('12345')
 
 function generateWalls() {
   // Add some obstacles
-  const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
   const obstacles = [];
+  const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
   for (let i = 0; i < numObstacles; i++) {
     //voorlopig 20 niet krijgen van de client kan aangepast worden
-    const obstacleX = Math.floor(Math.random() * 20);
-    const obstacleY = Math.floor(Math.random() * 20);
+    const obstacleX = Math.floor(Math.random() * 18);
+    const obstacleY = Math.floor(Math.random() * 18);
     obstacles.push({ x: obstacleX, y: obstacleY });
   }
   return obstacles;
