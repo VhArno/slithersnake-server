@@ -21,6 +21,15 @@ class Player {
     this.socketId = socketId;
     this.room = null;
     this.creator = false;
+    this.alive = true;
+  }
+
+  killPlayer(){
+    this.alive = false;
+  }
+
+  revivePlayer(){
+    this.alive = true;
   }
 
   setCreator() {
@@ -60,6 +69,10 @@ class Game {
   setDuelId(duelId) {
     this.duelId = duelId;
   }
+
+  //killplayer
+
+
 }
 
 io.on("connection", (socket) => {
@@ -144,6 +157,7 @@ io.on("connection", (socket) => {
     if (game) {
       console.log(game);
       game.gameStarted = true;
+
       postDuelDb(game.id, game.mode.id, game.map.id)
         .then((data) => {
           console.log("Duel posted successfully:", data);
@@ -169,40 +183,34 @@ io.on("connection", (socket) => {
         //checking maps
         console.log('gamemap id: ' + game.map.id)
         if (game.map.id === 1) {
-
           socket.emit("teleportFalse");
           socket.broadcast.emit("teleportFalse");
-
           console.log("MAP is normal");
 
         } else if (game.map.id === 2) {
-
           socket.emit("teleportFalse");
           socket.broadcast.emit("teleportFalse");
-
           console.log("MAP is walls")
+
           const obstacles = generateWalls();
           console.log(obstacles);
           socket.emit("wallsGenerated", obstacles);
           socket.broadcast.emit("wallsGenerated", obstacles);
 
         } else if (game.map.id === 3) {
-
           if (typeof obstacles !== 'undefined' && obstacles !== null) {
             obstacles.length = 0;
           }
-
           console.log("MAP is nowalls");
           socket.emit("teleportTrue");
           socket.broadcast.emit("teleportTrue");
-
         }
 
         //checking modes
         if (game.mode.id === 1) {
           console.log("MODE is normal");
         } else if (game.mode.id === 2) {
-          console.log("MODE is power-upsno");
+          console.log("MODE is power-ups");
           socket.emit("generatePowerUps");
           socket.broadcast.emit("generatePowerUps");
         } else if (game.mode.id === 3) {
@@ -218,7 +226,7 @@ io.on("connection", (socket) => {
 
   socket.on("getPlayerData", () => {
     // console.log(test);
-    socket.emit("getData", snake);
+    socket.emit("getData", snake,);
     socket.broadcast.emit("getData", snake);
   });
 
@@ -230,6 +238,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("generateFood", (foodX, foodY) => {
+
     socket.emit("showFood", foodX, foodY);
     socket.broadcast.emit("showFood", foodX, foodY);
   });
@@ -392,7 +401,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("gameOver", (gameId) => {
-    console.log("game over");
+    console.log("game over in GameOver");
     const game = openRooms.find((g) => g.id === gameId);
     if (game) {
       game.gameStarted = false;
@@ -416,24 +425,104 @@ io.on("connection", (socket) => {
     }
   });
 
+/*
   socket.on("playerDied", (playerId, gameId) => {
-    const game = openRooms.find((g) => g.id === gameId);
-    if (game) {
-      const player = game.players.find((p) => p.id === playerId);
-      if (player) {
-        game.removePlayer(player);
-        socket.emit("playerRemoved", playerId, gameId);
-        socket.broadcast.emit("playerRemoved", playerId, gameId);
-        
-        if (game.players.length === 1) {
-          const remainingPlayer = game.players[0];
-          socket.emit("gameOver", remainingPlayer.id, gameId);
-          socket.broadcast.emit("gameOver", remainingPlayer.id, gameId);
-        }
-      }
+   console.log('inside playerDied: ' + playerId + ' ; gameid: ' + gameId)
+   console.log('')
+   
+    const player = players.find((p) => p.id === playerId);
+    if (player) {
+      console.log('inside killplayer')
+      player.alive = false;
+      //make player alive false globally
+      //use killplayer
+      player.killPlayer();
+      console.log(player)
     }
-  });
+
+    checkAlivePlayers(gameId)
+
+    console.log('emitting player died')
+
+    socket.emit("playerDied", playerId);
+    socket.broadcast.emit("playerDied", playerId);
+  }
+  );
+});*/
+
+socket.on("playerDied", (playerId, gameId) => {
+  console.log('Player died event received for player: ' + playerId + ' in game: ' + gameId);
+ 
+  // Find the player in the global players array
+  const player = players.find((p) => p.id === playerId);
+  if (player) {
+    // Update the player's alive status directly in the global array
+    player.alive = false;
+    console.log('Updated player status to dead:', player);
+  } else {
+    console.log('Player not found:', playerId);
+  }
+
+  // Update the player's status in the game
+  const game = openRooms.find((g) => g.id === gameId);
+  if (game) {
+    const gamePlayer = game.players.find((p) => p.id === playerId);
+    if (gamePlayer) {
+      gamePlayer.alive = false;
+      console.log('Updated game player status to dead:', gamePlayer);
+    }
+  }
+
+  checkAlivePlayers(gameId);
+
+  console.log('Emitting playerDied event to all clients');
+  socket.emit("someoneDied", playerId);
+  socket.broadcast.emit("someoneDied", playerId);
   
+});
+
+
+function checkAlivePlayers(gameId) {
+  const game = openRooms.find((g) => g.id === gameId);
+
+  if (game) {
+
+    const alivePlayers = game.players.filter((player) => player.alive);
+    const deadPlayers = game.players.filter((player) => !player.alive);
+
+    console.log('inside checkaliveplayers')
+    console.log(game.players)
+    
+    //console.log(players)
+    console.log(`Alive players: ${alivePlayers.length}`);
+    console.log(`Dead players: ${deadPlayers.length}`);
+    
+    if (alivePlayers.length === 1) {
+      const winner = alivePlayers[0];
+      console.log(`Player ${winner.id} is the winner!`);
+      socket.emit("endGame", winner.name, gameId);
+      socket.broadcast.emit("endGame", winner.name, gameId);
+      //io.to(game.id).emit("endGame", winner.name);
+      game.players.forEach((player) => {
+        players = players.filter((p) => p.id !== player.id);
+      });
+      openRooms = openRooms.filter((g) => g.id !== game.id);
+      io.to(game.id).emit("newRoom", openRooms);
+    } else if (alivePlayers.length === 0) {
+      console.log("No players alive, game over!");
+      //io.to(game.id).emit("gameOverNoWinner", game.id);
+      socket.emit("gameOverNoWinner", game.id);
+      socket.broadcast.emit("gameOverNoWinner", game.id);
+      game.players.forEach((player) => {
+        players = players.filter((p) => p.id !== player.id);
+      });
+      openRooms = openRooms.filter((g) => g.id !== game.id);
+      io.to(game.id).emit("newRoom", openRooms);
+    }
+  }
+}
+
+
 });
 
 
