@@ -452,7 +452,6 @@ io.on("connection", (socket) => {
 
 socket.on("playerDied", (playerId, gameId) => {
   console.log('Player died event received for player: ' + playerId + ' in game: ' + gameId);
- 
   // Find the player in the global players array
   const player = players.find((p) => p.id === playerId);
   if (player) {
@@ -476,11 +475,23 @@ socket.on("playerDied", (playerId, gameId) => {
   
   console.log('Emitting playerDied event to all clients');
   console.log('playerid: ' + playerId)
+  
   socket.emit("someoneDied", playerId);
   socket.broadcast.emit("someoneDied", playerId);
   
   checkAlivePlayers(gameId);
 });
+
+socket.on('resetPlayersAlive', (id) => {
+  console.log('Resetting players alive status for game: ' + id);
+  const game = openRooms.find((g) => g.id === id);
+  if (game) {
+    game.players.forEach((p) => {
+      p.alive = true;
+      });
+      console.log('Players alive status reset for game:', game);
+    }
+})
 
 
 function checkAlivePlayers(gameId) {
