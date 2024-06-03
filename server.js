@@ -473,12 +473,13 @@ socket.on("playerDied", (playerId, gameId) => {
     }
   }
 
-  checkAlivePlayers(gameId);
-
+  
   console.log('Emitting playerDied event to all clients');
+  console.log('playerid: ' + playerId)
   socket.emit("someoneDied", playerId);
   socket.broadcast.emit("someoneDied", playerId);
-
+  
+  checkAlivePlayers(gameId);
 });
 
 
