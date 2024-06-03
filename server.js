@@ -248,9 +248,21 @@ io.on("connection", (socket) => {
   });
 
   socket.on("getRooms", () => {
-    // send the rooms where gamestarted is false
+    //send the rooms where game has not started and there are less than 4 players in the room
     const rooms = openRooms.filter((g) => !g.gameStarted);
-    socket.emit("rooms", rooms);
+    const r = rooms.filter((g) => g.players.length < 4);
+    socket.emit("rooms", r);
+  });
+
+  socket.on("checkPlayerCount", (gameId) => {
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      if (game.players.length >= 4) {
+        socket.emit("roomFull", game.id);
+      } else {
+        socket.emit("roomNotFull", game.id);
+      }
+    }
   });
 
   socket.on("settingsChanged", (r) => {
