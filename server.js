@@ -132,7 +132,8 @@ io.on("connection", (socket) => {
     openRooms.push(game);
     players.push(player);
     socket.emit("joinedRoom", game);
-    socket.broadcast.emit("newRoom", openRooms);
+    const rooms = openRooms.filter((g) => !g.gameStarted);
+    socket.broadcast.emit("newRoom", rooms);
     checkEmptyRooms();
   });
 
@@ -277,7 +278,21 @@ io.on("connection", (socket) => {
   });
 
   socket.on("getRooms", () => {
-    socket.emit("rooms", openRooms);
+    //send the rooms where game has not started and there are less than 4 players in the room
+    const rooms = openRooms.filter((g) => !g.gameStarted);
+    const r = rooms.filter((g) => g.players.length < 4);
+    socket.emit("rooms", r);
+  });
+
+  socket.on("checkPlayerCount", (gameId) => {
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      if (game.players.length >= 4) {
+        socket.emit("roomFull", game.id);
+      } else {
+        socket.emit("roomNotFull", game.id);
+      }
+    }
   });
 
   socket.on("settingsChanged", (r) => {
@@ -343,8 +358,9 @@ io.on("connection", (socket) => {
         players = players.filter((p) => p.id !== player.id);
       });
       openRooms = openRooms.filter((g) => g.id !== game.id);
-      socket.emit("newRoom", openRooms);
-      socket.broadcast.emit("newRoom", openRooms);
+      const rooms = openRooms.filter((g) => !g.gameStarted);
+      socket.emit("newRoom", rooms);
+      socket.broadcast.emit("newRoom", rooms);
     }
   });
 
@@ -370,8 +386,9 @@ io.on("connection", (socket) => {
       });
       openRooms = openRooms.filter((g) => g.id !== roomId);
       console.log("Got here");
-      socket.emit("newRoom", openRooms);
-      socket.broadcast.emit("newRoom", openRooms);
+      const rooms = openRooms.filter((g) => !g.gameStarted);
+      socket.emit("newRoom", rooms);
+      socket.broadcast.emit("newRoom", rooms);
     }
     socket.emit("prepNewRoom", sId);
   });
@@ -420,7 +437,8 @@ io.on("connection", (socket) => {
           players = players.filter((p) => p.id !== player.id);
         });
         openRooms = openRooms.filter((g) => g.id !== game.id);
-        socket.emit("newRoom", openRooms);
+        const rooms = openRooms.filter((g) => !g.gameStarted);
+        socket.emit("newRoom", rooms);
       }, 5000);
     }
   });
