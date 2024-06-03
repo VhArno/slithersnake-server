@@ -415,7 +415,28 @@ io.on("connection", (socket) => {
       }, 5000);
     }
   });
+
+  socket.on("playerDied", (playerId, gameId) => {
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      const player = game.players.find((p) => p.id === playerId);
+      if (player) {
+        game.removePlayer(player);
+        socket.emit("playerRemoved", playerId, gameId);
+        socket.broadcast.emit("playerRemoved", playerId, gameId);
+        
+        if (game.players.length === 1) {
+          const remainingPlayer = game.players[0];
+          socket.emit("gameOver", remainingPlayer.id, gameId);
+          socket.broadcast.emit("gameOver", remainingPlayer.id, gameId);
+        }
+      }
+    }
+  });
+  
 });
+
+
 
 function checkEmptyRooms() {
   //check if there are empty rooms and remove them
