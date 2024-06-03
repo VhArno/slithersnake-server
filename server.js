@@ -21,6 +21,15 @@ class Player {
     this.socketId = socketId;
     this.room = null;
     this.creator = false;
+    this.alive = true;
+  }
+
+  killPlayer(){
+    this.alive = false;
+  }
+
+  revivePlayer(){
+    this.alive = true;
   }
 
   setCreator() {
@@ -60,6 +69,10 @@ class Game {
   setDuelId(duelId) {
     this.duelId = duelId;
   }
+
+  //killplayer
+
+
 }
 
 io.on("connection", (socket) => {
@@ -145,6 +158,7 @@ io.on("connection", (socket) => {
     if (game) {
       console.log(game);
       game.gameStarted = true;
+
       postDuelDb(game.id, game.mode.id, game.map.id)
         .then((data) => {
           console.log("Duel posted successfully:", data);
@@ -162,54 +176,70 @@ io.on("connection", (socket) => {
     }
 
     //check gamemode and run needed logic
-    socket.on("checkModeMap", () => {
+    socket.on("checkModeMap", (id) => {
       if (!game) {
         console.log("game is not defined");
-      } else {
+      } else if(game.id === id){
+
         //checking maps
+        console.log('gamemap id: ' + game.map.id)
         if (game.map.id === 1) {
-          console.log("map is normal");
+          socket.emit("teleportFalse");
+          socket.broadcast.emit("teleportFalse");
+          console.log("MAP is normal");
+
         } else if (game.map.id === 2) {
+          socket.emit("teleportFalse");
+          socket.broadcast.emit("teleportFalse");
+          console.log("MAP is walls")
+
           const obstacles = generateWalls();
           console.log(obstacles);
           socket.emit("wallsGenerated", obstacles);
           socket.broadcast.emit("wallsGenerated", obstacles);
+
         } else if (game.map.id === 3) {
-          console.log("gamemode is nowalls");
+          if (typeof obstacles !== 'undefined' && obstacles !== null) {
+            obstacles.length = 0;
+          }
+          console.log("MAP is nowalls");
           socket.emit("teleportTrue");
           socket.broadcast.emit("teleportTrue");
         }
 
         //checking modes
         if (game.mode.id === 1) {
-          console.log("gamemode is normal");
+          console.log("MODE is normal");
         } else if (game.mode.id === 2) {
-          console.log("gamemode is power-ups");
+          console.log("MODE is power-ups");
           socket.emit("generatePowerUps");
           socket.broadcast.emit("generatePowerUps");
         } else if (game.mode.id === 3) {
-          console.log("gamemode is limited-time");
+          console.log("MODE is limited-time");
           socket.emit("setTimeLimit");
           socket.broadcast.emit("setTimeLimit");
         }
+      } else{
+        console.log('game id does not match')
       }
     });
   });
 
   socket.on("getPlayerData", () => {
     // console.log(test);
-    socket.emit("getData", snake);
+    socket.emit("getData", snake,);
     socket.broadcast.emit("getData", snake);
   });
 
   socket.on("sendPlayerData", (snakeData, playerId) => {
-    console.log(playerId + "sent data");
+    //console.log(playerId + "sent data");
     snake = { data: snakeData, id: playerId };
     // socket.emit('sendData');
     // socket.broadcast.emit('sendData');
   });
 
   socket.on("generateFood", (foodX, foodY) => {
+
     socket.emit("showFood", foodX, foodY);
     socket.broadcast.emit("showFood", foodX, foodY);
   });
@@ -217,7 +247,7 @@ io.on("connection", (socket) => {
   socket.on("generatePowerUp", (powerX, powerY) => {
     let random = Math.floor(Math.random() * 4 + 1);
     //testwaarde
-    // const random = 3;
+    // const random = 4;
     socket.emit("showPowerUp", powerX, powerY, random);
     socket.broadcast.emit("showPowerUp", powerX, powerY, random);
   });
@@ -388,7 +418,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("gameOver", (gameId) => {
-    console.log("game over");
+    console.log("game over in GameOver");
     const game = openRooms.find((g) => g.id === gameId);
     if (game) {
       game.gameStarted = false;
@@ -412,7 +442,120 @@ io.on("connection", (socket) => {
       }, 5000);
     }
   });
+
+/*
+  socket.on("playerDied", (playerId, gameId) => {
+   console.log('inside playerDied: ' + playerId + ' ; gameid: ' + gameId)
+   console.log('')
+   
+    const player = players.find((p) => p.id === playerId);
+    if (player) {
+      console.log('inside killplayer')
+      player.alive = false;
+      //make player alive false globally
+      //use killplayer
+      player.killPlayer();
+      console.log(player)
+    }
+
+    checkAlivePlayers(gameId)
+
+    console.log('emitting player died')
+
+    socket.emit("playerDied", playerId);
+    socket.broadcast.emit("playerDied", playerId);
+  }
+  );
+});*/
+
+socket.on("playerDied", (playerId, gameId) => {
+  console.log('Player died event received for player: ' + playerId + ' in game: ' + gameId);
+  // Find the player in the global players array
+  const player = players.find((p) => p.id === playerId);
+  if (player) {
+    // Update the player's alive status directly in the global array
+    player.alive = false;
+    //console.log('Updated player status to dead:', player);
+  } else {
+    console.log('Player not found:', playerId);
+  }
+
+  // Update the player's status in the game
+  const game = openRooms.find((g) => g.id === gameId);
+  if (game) {
+    const gamePlayer = game.players.find((p) => p.id === playerId);
+    if (gamePlayer) {
+      gamePlayer.alive = false;
+      console.log('Updated game player status to dead:', gamePlayer);
+    }
+  }
+
+  
+  console.log('Emitting playerDied event to all clients');
+  console.log('playerid: ' + playerId)
+  
+  socket.emit("someoneDied", playerId);
+  socket.broadcast.emit("someoneDied", playerId);
+  
+  checkAlivePlayers(gameId);
 });
+
+socket.on('resetPlayersAlive', (id) => {
+  console.log('Resetting players alive status for game: ' + id);
+  const game = openRooms.find((g) => g.id === id);
+  if (game) {
+    game.players.forEach((p) => {
+      p.alive = true;
+      });
+      console.log('Players alive status reset for game:', game);
+    }
+})
+
+
+function checkAlivePlayers(gameId) {
+  const game = openRooms.find((g) => g.id === gameId);
+
+  if (game) {
+
+    const alivePlayers = game.players.filter((player) => player.alive);
+    const deadPlayers = game.players.filter((player) => !player.alive);
+
+    console.log('inside checkaliveplayers')
+    //console.log(game.players)
+    
+    //console.log(players)
+    console.log(`Alive players: ${alivePlayers.length}`);
+    console.log(`Dead players: ${deadPlayers.length}`);
+    
+    if (alivePlayers.length === 1) {
+      const winner = alivePlayers[0];
+      console.log(`Player ${winner.id} is the winner!`);
+      socket.emit("endGame", winner.name, gameId);
+      socket.broadcast.emit("endGame", winner.name, gameId);
+      //io.to(game.id).emit("endGame", winner.name);
+      game.players.forEach((player) => {
+        players = players.filter((p) => p.id !== player.id);
+      });
+      openRooms = openRooms.filter((g) => g.id !== game.id);
+      io.to(game.id).emit("newRoom", openRooms);
+    } else if (alivePlayers.length === 0) {
+      console.log("No players alive, game over!");
+      //io.to(game.id).emit("gameOverNoWinner", game.id);
+      socket.emit("gameOverNoWinner", game.id);
+      socket.broadcast.emit("gameOverNoWinner", game.id);
+      game.players.forEach((player) => {
+        players = players.filter((p) => p.id !== player.id);
+      });
+      openRooms = openRooms.filter((g) => g.id !== game.id);
+      io.to(game.id).emit("newRoom", openRooms);
+    }
+  }
+}
+
+
+});
+
+
 
 function checkEmptyRooms() {
   //check if there are empty rooms and remove them
@@ -506,12 +649,12 @@ patchDuelDb('12345')
 
 function generateWalls() {
   // Add some obstacles
-  const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
   const obstacles = [];
+  const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
   for (let i = 0; i < numObstacles; i++) {
     //voorlopig 20 niet krijgen van de client kan aangepast worden
-    const obstacleX = Math.floor(Math.random() * 20);
-    const obstacleY = Math.floor(Math.random() * 20);
+    const obstacleX = Math.floor(Math.random() * 18);
+    const obstacleY = Math.floor(Math.random() * 18);
     obstacles.push({ x: obstacleX, y: obstacleY });
   }
   return obstacles;
