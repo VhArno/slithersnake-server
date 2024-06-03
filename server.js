@@ -458,7 +458,7 @@ socket.on("playerDied", (playerId, gameId) => {
   if (player) {
     // Update the player's alive status directly in the global array
     player.alive = false;
-    console.log('Updated player status to dead:', player);
+    //console.log('Updated player status to dead:', player);
   } else {
     console.log('Player not found:', playerId);
   }
@@ -478,7 +478,7 @@ socket.on("playerDied", (playerId, gameId) => {
   console.log('Emitting playerDied event to all clients');
   socket.emit("someoneDied", playerId);
   socket.broadcast.emit("someoneDied", playerId);
-  
+
 });
 
 
@@ -491,7 +491,7 @@ function checkAlivePlayers(gameId) {
     const deadPlayers = game.players.filter((player) => !player.alive);
 
     console.log('inside checkaliveplayers')
-    console.log(game.players)
+    //console.log(game.players)
     
     //console.log(players)
     console.log(`Alive players: ${alivePlayers.length}`);
