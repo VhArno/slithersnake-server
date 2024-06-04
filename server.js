@@ -653,8 +653,8 @@ function generateWalls() {
   const numObstacles = Math.max(15, Math.floor(Math.random() * 6) + 1); // Random number of obstacles between 1 and 6, but at least 15
   for (let i = 0; i < numObstacles; i++) {
     //voorlopig 20 niet krijgen van de client kan aangepast worden
-    const obstacleX = Math.floor(Math.random() * 18);
-    const obstacleY = Math.floor(Math.random() * 18);
+    const obstacleX = Math.floor(Math.random() * 18) + 1;
+    const obstacleY = Math.floor(Math.random() * 18) + 1;
     obstacles.push({ x: obstacleX, y: obstacleY });
   }
   return obstacles;
