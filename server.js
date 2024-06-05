@@ -552,10 +552,16 @@ function checkAlivePlayers(gameId) {
   }
 }
 
+  //chat function making a receive and send message function 
+socket.on("sendMessage", (message, room, playerId) => {
+  console.log(`Received message: ${message} in room ${room} by ${playerId}`);
+  socket.to(room).emit("receiveMessage", message, playerId);
 
+  console.log('room: ' + room)
+  socket.emit("receiveMessage", message, playerId, room)
+  socket.broadcast.emit("receiveMessage", message, playerId, room)
+  });
 });
-
-
 
 function checkEmptyRooms() {
   //check if there are empty rooms and remove them
