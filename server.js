@@ -356,6 +356,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("prepNewRoom", (roomId, sId) => {
+    io.socketsLeave(roomId);
     //remove all the players in the room from the players array
     const game = openRooms.find((g) => g.id === roomId);
     console.log(game);
