@@ -24,11 +24,11 @@ class Player {
     this.alive = true;
   }
 
-  killPlayer(){
+  killPlayer() {
     this.alive = false;
   }
 
-  revivePlayer(){
+  revivePlayer() {
     this.alive = true;
   }
 
@@ -71,8 +71,6 @@ class Game {
   }
 
   //killplayer
-
-
 }
 
 io.on("connection", (socket) => {
@@ -96,6 +94,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("joinRoom", (gameId, p) => {
+    socket.join(gameId);
     const game = openRooms.find((g) => g.id === gameId);
     const player = new Player(
       p._value.id,
@@ -124,6 +123,7 @@ io.on("connection", (socket) => {
       p._value.level,
       socket.id
     );
+    socket.join(rId);
     player.setCreator();
     player.joinGame(rId);
     player.room = rId;
@@ -154,6 +154,7 @@ io.on("connection", (socket) => {
   })*/
 
   socket.on("startGame", (room) => {
+    console.log("game started");
     const game = openRooms.find((g) => g.id === room.id);
     if (game) {
       console.log(game);
@@ -163,48 +164,38 @@ io.on("connection", (socket) => {
         .then((data) => {
           console.log("Duel posted successfully:", data);
           game.setDuelId(data.data.duel_id);
-          socket.emit("duelId", data.data.duel_id);
-          socket.broadcast.emit("duelId", data.data.duel_id);
+          io.to(room.id).emit("duelId", data.data.duel_id);
         })
         .catch((error) => {
           console.error("Error:", error);
         });
 
-      socket.emit("gameStarted", room.id);
+      io.to(room.id).emit("gameStarted", room.id);
       console.log("game started");
-      socket.broadcast.emit("gameStarted", room.id);
     }
 
     //check gamemode and run needed logic
     socket.on("checkModeMap", (id) => {
       if (!game) {
         console.log("game is not defined");
-      } else if(game.id === id){
-
+      } else if (game.id === id) {
         //checking maps
-        console.log('gamemap id: ' + game.map.id)
+        console.log("gamemap id: " + game.map.id);
         if (game.map.id === 1) {
-          socket.emit("teleportFalse");
-          socket.broadcast.emit("teleportFalse");
+          io.to(room.id).emit("teleportFalse");
           console.log("MAP is normal");
-
         } else if (game.map.id === 2) {
-          socket.emit("teleportFalse");
-          socket.broadcast.emit("teleportFalse");
-          console.log("MAP is walls")
-
+          io.to(room.id).emit("teleportFalse");
+          console.log("MAP is walls");
           const obstacles = generateWalls();
           console.log(obstacles);
-          socket.emit("wallsGenerated", obstacles);
-          socket.broadcast.emit("wallsGenerated", obstacles);
-
+          io.to(room.id).emit("wallsGenerated", obstacles);
         } else if (game.map.id === 3) {
-          if (typeof obstacles !== 'undefined' && obstacles !== null) {
+          if (typeof obstacles !== "undefined" && obstacles !== null) {
             obstacles.length = 0;
           }
           console.log("MAP is nowalls");
-          socket.emit("teleportTrue");
-          socket.broadcast.emit("teleportTrue");
+          io.to(room.id).emit("teleportTrue");
         }
 
         //checking modes
@@ -212,23 +203,20 @@ io.on("connection", (socket) => {
           console.log("MODE is normal");
         } else if (game.mode.id === 2) {
           console.log("MODE is power-ups");
-          socket.emit("generatePowerUps");
-          socket.broadcast.emit("generatePowerUps");
+          io.to(room.id).emit("generatePowerUps");
         } else if (game.mode.id === 3) {
           console.log("MODE is limited-time");
-          socket.emit("setTimeLimit");
-          socket.broadcast.emit("setTimeLimit");
+          io.to(room.id).emit("setTimeLimit");
         }
-      } else{
-        console.log('game id does not match')
+      } else {
+        console.log("game id does not match");
       }
     });
   });
 
-  socket.on("getPlayerData", () => {
+  socket.on("getPlayerData", (roomId) => {
     // console.log(test);
-    socket.emit("getData", snake,);
-    socket.broadcast.emit("getData", snake);
+    io.to(roomId).emit("getData", snake);
   });
 
   socket.on("sendPlayerData", (snakeData, playerId) => {
@@ -238,43 +226,35 @@ io.on("connection", (socket) => {
     // socket.broadcast.emit('sendData');
   });
 
-  socket.on("generateFood", (foodX, foodY) => {
-
-    socket.emit("showFood", foodX, foodY);
-    socket.broadcast.emit("showFood", foodX, foodY);
+  socket.on("generateFood", (foodX, foodY, roomId) => {
+    io.to(roomId).emit("showFood", foodX, foodY);
   });
 
-  socket.on("generatePowerUp", (powerX, powerY) => {
+  socket.on("generatePowerUp", (powerX, powerY, roomId) => {
     let random = Math.floor(Math.random() * 4 + 1);
     //testwaarde
     // const random = 4;
-    socket.emit("showPowerUp", powerX, powerY, random);
-    socket.broadcast.emit("showPowerUp", powerX, powerY, random);
+    io.to(roomId).emit("showPowerUp", powerX, powerY, random);
   });
 
-  socket.on("setPowerUpAvailability", (bool) => {
-    socket.emit("setPowerUpAvailability", bool);
-    socket.broadcast.emit("setPowerUpAvailability", bool);
+  socket.on("setPowerUpAvailability", (bool, roomId) => {
+    io.to(roomId).emit("setPowerUpAvailability", bool);
   });
 
-  socket.on("activateGhost", (playerId) => {
-    socket.emit("activateGhost", playerId);
-    socket.broadcast.emit("activateGhost", playerId);
+  socket.on("activateGhost", (playerId, roomId) => {
+    io.to(roomId).emit("activateGhost", playerId);
   });
 
-  socket.on("deactivateGhost", (playerId) => {
-    socket.emit("deactivateGhost", playerId);
-    socket.broadcast.emit("deactivateGhost", playerId);
+  socket.on("deactivateGhost", (playerId, roomId) => {
+    io.to(roomId).emit("deactivateGhost", playerId);
   });
 
   socket.on("activateInvis", (playerId) => {
-    socket.emit("activateInvis", playerId);
-    socket.broadcast.emit("activateInvis", playerId);
+    io.to(roomId).emit("activateInvis", playerId);
   });
 
   socket.on("deactivateInvis", (playerId) => {
-    socket.emit("deactivateInvis", playerId);
-    socket.broadcast.emit("deactivateInvis", playerId);
+    io.to(roomId).emit("deactivateInvis", playerId);
   });
 
   socket.on("getRooms", () => {
@@ -296,6 +276,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("settingsChanged", (r) => {
+    
     // update the room settings
     const game = openRooms.find((g) => g.id === r.id);
     if (game) {
@@ -303,7 +284,7 @@ io.on("connection", (socket) => {
       game.map = r.map;
       game.players = r.players;
     }
-    socket.broadcast.emit("settingsChanged", r);
+    socket.broadcast.to(r.id).emit("settingsChanged", r);
   });
 
   socket.on("disconnect", () => {
@@ -315,6 +296,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("leaveRoom", (plId) => {
+    socket.leave(plId);
     const player = players.find((p) => p.socketId === plId);
     if (player) {
       removePlayer(player);
@@ -336,15 +318,13 @@ io.on("connection", (socket) => {
           const playerId = game.players[0].socketId;
           const pl = players.find((p) => p.socketId === playerId);
           pl.setCreator();
-          socket.emit("newCreator", pl.socketId);
-          socket.broadcast.emit("newCreator", pl.socketId);
+          io.to(game.id).emit("newCreator", pl.socketId);
         } else {
           openRooms = openRooms.filter((g) => g.id !== game.id);
           socket.emit("evacuateRoom", game.id);
         }
       }
-      socket.emit("playerLeft", game);
-      socket.broadcast.emit("playerLeft", game);
+      io.to(game.id).emit("playerLeft", game);
       if (game.players.length === 0) {
         openRooms = openRooms.filter((g) => g.id !== game.id);
       }
@@ -394,7 +374,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("evacuateOthers", (roomId) => {
-    socket.broadcast.emit("evacuateRoom", roomId);
+    socket.broadcast.to(roomId).emit("evacuateRoom", roomId);
   });
 
   socket.on("checkIfRoomExists", (roomId) => {
@@ -413,8 +393,7 @@ io.on("connection", (socket) => {
   socket.on("nextGameUrl", (gameId, newGameId) => {
     console.log("next game url", newGameId);
     console.log("next game url", newGameId);
-    socket.emit("nextGameUrl", gameId, newGameId);
-    socket.broadcast.emit("nextGameUrl", gameId, newGameId);
+    io.to(gameId).emit("nextGameUrl", gameId, newGameId);
   });
 
   socket.on("gameOver", (gameId) => {
@@ -431,19 +410,18 @@ io.on("connection", (socket) => {
         });
 
       setTimeout(() => {
-        socket.emit("gameOver", game.id);
-        socket.broadcast.emit("gameOver", game.id);
+        io.to(game.id).emit("gameOver", game.id);
         game.players.forEach((player) => {
           players = players.filter((p) => p.id !== player.id);
         });
         openRooms = openRooms.filter((g) => g.id !== game.id);
         const rooms = openRooms.filter((g) => !g.gameStarted);
-        socket.emit("newRoom", rooms);
+        socket.broadcast.emit("newRoom", rooms);
       }, 5000);
     }
   });
 
-/*
+  /*
   socket.on("playerDied", (playerId, gameId) => {
    console.log('inside playerDied: ' + playerId + ' ; gameid: ' + gameId)
    console.log('')
@@ -468,98 +446,96 @@ io.on("connection", (socket) => {
   );
 });*/
 
-socket.on("playerDied", (playerId, gameId) => {
-  console.log('Player died event received for player: ' + playerId + ' in game: ' + gameId);
-  // Find the player in the global players array
-  const player = players.find((p) => p.id === playerId);
-  if (player) {
-    // Update the player's alive status directly in the global array
-    player.alive = false;
-    //console.log('Updated player status to dead:', player);
-  } else {
-    console.log('Player not found:', playerId);
-  }
+  socket.on("playerDied", (playerId, gameId) => {
+    console.log(
+      "Player died event received for player: " +
+        playerId +
+        " in game: " +
+        gameId
+    );
+    // Find the player in the global players array
+    const player = players.find((p) => p.id === playerId);
+    if (player) {
+      // Update the player's alive status directly in the global array
+      player.alive = false;
+      //console.log('Updated player status to dead:', player);
+    } else {
+      console.log("Player not found:", playerId);
+    }
 
-  // Update the player's status in the game
-  const game = openRooms.find((g) => g.id === gameId);
-  if (game) {
-    const gamePlayer = game.players.find((p) => p.id === playerId);
-    if (gamePlayer) {
-      gamePlayer.alive = false;
-      console.log('Updated game player status to dead:', gamePlayer);
+    // Update the player's status in the game
+    const game = openRooms.find((g) => g.id === gameId);
+    if (game) {
+      const gamePlayer = game.players.find((p) => p.id === playerId);
+      if (gamePlayer) {
+        gamePlayer.alive = false;
+        console.log("Updated game player status to dead:", gamePlayer);
+      }
+    }
+
+    console.log("Emitting playerDied event to all clients");
+    console.log("playerid: " + playerId);
+
+    io.to(gameId).emit("playerDied", playerId);
+
+    checkAlivePlayers(gameId);
+  });
+
+  socket.on("resetPlayersAlive", (id) => {
+    console.log("Resetting players alive status for game: " + id);
+    const game = openRooms.find((g) => g.id === id);
+    if (game) {
+      game.players.forEach((p) => {
+        p.alive = true;
+      });
+      console.log("Players alive status reset for game:", game);
+    }
+  });
+
+  function checkAlivePlayers(gameId) {
+    const game = openRooms.find((g) => g.id === gameId);
+
+    if (game) {
+      const alivePlayers = game.players.filter((player) => player.alive);
+      const deadPlayers = game.players.filter((player) => !player.alive);
+
+      console.log("inside checkaliveplayers");
+      //console.log(game.players)
+
+      //console.log(players)
+      console.log(`Alive players: ${alivePlayers.length}`);
+      console.log(`Dead players: ${deadPlayers.length}`);
+
+      if (alivePlayers.length === 1) {
+        const winner = alivePlayers[0];
+        console.log(`Player ${winner.id} is the winner!`);
+        io.to(game.id).emit("endGame", winner.name, gameId);
+        //io.to(game.id).emit("endGame", winner.name);
+        game.players.forEach((player) => {
+          players = players.filter((p) => p.id !== player.id);
+        });
+        openRooms = openRooms.filter((g) => g.id !== game.id);
+        io.to(game.id).emit("newRoom", openRooms);
+      } else if (alivePlayers.length === 0) {
+        console.log("No players alive, game over!");
+        io.to(game.id).emit("gameOverNoWinner", game.id);
+        game.players.forEach((player) => {
+          players = players.filter((p) => p.id !== player.id);
+        });
+        openRooms = openRooms.filter((g) => g.id !== game.id);
+        io.to(game.id).emit("newRoom", openRooms);
+      }
     }
   }
 
-  
-  console.log('Emitting playerDied event to all clients');
-  console.log('playerid: ' + playerId)
-  
-  socket.emit("someoneDied", playerId);
-  socket.broadcast.emit("someoneDied", playerId);
-  
-  checkAlivePlayers(gameId);
-});
+  //chat function making a receive and send message function
+  socket.on("sendMessage", (message, room, playerId) => {
+    console.log(`Received message: ${message} in room ${room} by ${playerId}`);
+    socket.to(room).emit("receiveMessage", message, playerId);
 
-socket.on('resetPlayersAlive', (id) => {
-  console.log('Resetting players alive status for game: ' + id);
-  const game = openRooms.find((g) => g.id === id);
-  if (game) {
-    game.players.forEach((p) => {
-      p.alive = true;
-      });
-      console.log('Players alive status reset for game:', game);
-    }
-})
-
-
-function checkAlivePlayers(gameId) {
-  const game = openRooms.find((g) => g.id === gameId);
-
-  if (game) {
-
-    const alivePlayers = game.players.filter((player) => player.alive);
-    const deadPlayers = game.players.filter((player) => !player.alive);
-
-    console.log('inside checkaliveplayers')
-    //console.log(game.players)
-    
-    //console.log(players)
-    console.log(`Alive players: ${alivePlayers.length}`);
-    console.log(`Dead players: ${deadPlayers.length}`);
-    
-    if (alivePlayers.length === 1) {
-      const winner = alivePlayers[0];
-      console.log(`Player ${winner.id} is the winner!`);
-      socket.emit("endGame", winner.name, gameId);
-      socket.broadcast.emit("endGame", winner.name, gameId);
-      //io.to(game.id).emit("endGame", winner.name);
-      game.players.forEach((player) => {
-        players = players.filter((p) => p.id !== player.id);
-      });
-      openRooms = openRooms.filter((g) => g.id !== game.id);
-      io.to(game.id).emit("newRoom", openRooms);
-    } else if (alivePlayers.length === 0) {
-      console.log("No players alive, game over!");
-      //io.to(game.id).emit("gameOverNoWinner", game.id);
-      socket.emit("gameOverNoWinner", game.id);
-      socket.broadcast.emit("gameOverNoWinner", game.id);
-      game.players.forEach((player) => {
-        players = players.filter((p) => p.id !== player.id);
-      });
-      openRooms = openRooms.filter((g) => g.id !== game.id);
-      io.to(game.id).emit("newRoom", openRooms);
-    }
-  }
-}
-
-  //chat function making a receive and send message function 
-socket.on("sendMessage", (message, room, playerId) => {
-  console.log(`Received message: ${message} in room ${room} by ${playerId}`);
-  socket.to(room).emit("receiveMessage", message, playerId);
-
-  console.log('room: ' + room)
-  socket.emit("receiveMessage", message, playerId, room)
-  socket.broadcast.emit("receiveMessage", message, playerId, room)
+    console.log("room: " + room);
+    socket.emit("receiveMessage", message, playerId, room);
+    socket.broadcast.emit("receiveMessage", message, playerId, room);
   });
 });
 
