@@ -530,13 +530,13 @@ io.on("connection", (socket) => {
   }
 
   //chat function making a receive and send message function
-  socket.on("sendMessage", (message, room, playerId) => {
-    console.log(`Received message: ${message} in room ${room} by ${playerId}`);
-    socket.to(room).emit("receiveMessage", message, playerId);
+  socket.on("sendMessage", (message, room, playerName) => {
+    console.log(`Received message: ${message} in room ${room} by ${playerName}`);
+    socket.to(room).emit("receiveMessage", message, playerName);
 
     console.log("room: " + room);
-    socket.emit("receiveMessage", message, playerId, room);
-    socket.broadcast.emit("receiveMessage", message, playerId, room);
+    socket.emit("receiveMessage", message, playerName, room);
+    socket.broadcast.emit("receiveMessage", message, playerName, room);
   });
 });
 
