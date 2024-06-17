@@ -276,7 +276,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("settingsChanged", (r) => {
-    
     // update the room settings
     const game = openRooms.find((g) => g.id === r.id);
     if (game) {
@@ -531,7 +530,9 @@ io.on("connection", (socket) => {
 
   //chat function making a receive and send message function
   socket.on("sendMessage", (message, room, playerName) => {
-    console.log(`Received message: ${message} in room ${room} by ${playerName}`);
+    console.log(
+      `Received message: ${message} in room ${room} by ${playerName}`
+    );
     socket.to(room).emit("receiveMessage", message, playerName);
 
     console.log("room: " + room);
@@ -555,7 +556,7 @@ async function postDuelDb(duel_id, gamemode, map) {
   const url = `${process.env.API_BASE_URL}/api/duels`;
 
   const body = {
-    duel_id: duel_id,
+    // duel_id: duel_id,
     gamemodes_id: gamemode,
     maps_id: map,
   };
