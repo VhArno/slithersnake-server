@@ -553,6 +553,7 @@ function checkEmptyRooms() {
 /* Add a duel in db when game starts */
 // -> post .../api/duels
 async function postDuelDb(duel_id, gamemode, map) {
+  console.log(process.env.API_BASE_URL)
   const url = `${process.env.API_BASE_URL}/api/duels`;
 
   const body = {
