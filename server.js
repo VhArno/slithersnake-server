@@ -572,6 +572,7 @@ async function postDuelDb(duel_id, gamemode, map) {
     });
 
     if (!response.ok) {
+      console.log(response);
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
