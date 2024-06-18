@@ -230,6 +230,10 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("showFood", foodX, foodY, playerId);
   });
 
+  socket.on("updateScores", (roomId, playerId) => {
+    io.to(roomId).emit("updateScores", playerId);
+  });
+
   socket.on("generatePowerUp", (powerX, powerY, roomId) => {
     let random = Math.floor(Math.random() * 4 + 1);
     //testwaarde
