@@ -510,7 +510,7 @@ io.on("connection", (socket) => {
       console.log(`Alive players: ${alivePlayers.length}`);
       console.log(`Dead players: ${deadPlayers.length}`);
 
-      if (alivePlayers.length === 1) {
+      if (alivePlayers.length == 1) {
         const winner = alivePlayers[0];
         console.log(`Player ${winner.id} is the winner!`);
         io.to(game.id).emit("endGame", winner.name, gameId);
@@ -520,7 +520,7 @@ io.on("connection", (socket) => {
         });
         openRooms = openRooms.filter((g) => g.id !== game.id);
         io.to(game.id).emit("newRoom", openRooms);
-      } else if (alivePlayers.length === 0) {
+      } else if (alivePlayers.length == 0) {
         console.log("No players alive, game over!");
         io.to(game.id).emit("gameOverNoWinner", game.id);
         game.players.forEach((player) => {
