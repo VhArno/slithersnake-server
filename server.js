@@ -226,8 +226,8 @@ io.on("connection", (socket) => {
     // socket.broadcast.emit('sendData');
   });
 
-  socket.on("generateFood", (foodX, foodY, roomId) => {
-    io.to(roomId).emit("showFood", foodX, foodY);
+  socket.on("generateFood", (foodX, foodY, roomId, playerId) => {
+    io.to(roomId).emit("showFood", foodX, foodY, playerId);
   });
 
   socket.on("generatePowerUp", (powerX, powerY, roomId) => {
